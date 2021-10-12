@@ -11,8 +11,7 @@ import shutil
 from os import path
 
 cnopts = pysftp.CnOpts()
-
-
+cnopts.hostkeys=None
 
 def run_job(job_number):
     command = f'echo execute job number {job_number}'
@@ -25,7 +24,11 @@ def run_job(job_number):
 def file_prep_for_send(job_type, companyname, name, date_time):
     # make a duplicate of an existing file
     source_file = f"{name}.csv"
-    source_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Source"
+    source_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Source/{name}"
+    files = os.listdir(source_dir)
+    for f in files:
+        print(f)
+        source_file = f
     target_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Send"
     target_file = f"{config.prefix}_{name}_{date_time}.csv"
     if path.exists(f'{source_dir}/{source_file}'):
@@ -65,6 +68,6 @@ if __name__ == '__main__':
                         basedir = f"{task['base_directory']}/{integration['folder']}"
                         print(
                             f"Put {filename} in folder {basedir} ")
-                        with pysftp.Connection(company['host'], username=company['username']) as sftp:
+                        with pysftp.Connection(company['host'], username=company['username'],password='Sesame1234##',cnopts=cnopts) as sftp:
                             with sftp.cd(basedir):
                                 sftp.put(filename)
