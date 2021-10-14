@@ -23,7 +23,7 @@ def run_job(job_number):
 def file_prep_for_send(job_type, companyname, name, date_time):
     # make a duplicate of an existing file
     source_file = f"{name}.csv"
-    source_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Source/"
+    source_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Source"
     files = os.listdir(source_dir)
     # for f in files:
     #     print(f)
