@@ -10,6 +10,7 @@ import os
 from zipfile import ZipFile
 from os import path
 from os.path import basename
+import csv
 
 class Workfile:
     def __init__(self, source, target):
