@@ -29,9 +29,6 @@ def file_prep_for_send(job_type, companyname, name, date_time):
     source_file = f"{name}.csv"
     source_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Source"
     files = os.listdir(source_dir)
-    # for f in files:
-    #     print(f)
-    #     source_file = f
     target_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Send"
     target_file = f"{config.prefix}_{name}_{date_time}.csv"
     print(f'{source_dir}/{source_file}')
@@ -49,9 +46,9 @@ if __name__ == '__main__':
     company_name = ''
     now = datetime.now()  # current date and time
     date_time = now.strftime(config.date_time_format)
+    #Get Commandline ops type and company as defined in the config.py
     try:
         opts, args = getopt.getopt(sys.argv[1:], "ht:c:", ["type=", "company="])
-
     except getopt.GetoptError:
         print('main.py -t <type> -c <company>')
         sys.exit(2)
@@ -63,6 +60,7 @@ if __name__ == '__main__':
             job_type = arg
         elif opt in ("-c", "--company"):
             company_name = arg
+    
     zipObj = ZipFile(f"{config.local_file_dir}/{company_name}/{job_type}/Processed/{company_name}.{date_time}.zip", 'w')
     work_files = []
     for company in config.companies:
