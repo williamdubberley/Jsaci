@@ -11,6 +11,10 @@ from zipfile import ZipFile
 from os import path
 from os.path import basename
 
+class Workfile:
+    def __init__(self, source, target):
+        self.source = source
+        self.target = target
 
 def run_job(job_number):
     command = f'/home/tomcat/rj/public/bin/etl {job_number} -account 1000'
@@ -30,12 +34,14 @@ def file_prep_for_send(job_type, companyname, name, date_time):
     #     source_file = f
     target_dir = f"{config.local_file_dir}/{companyname}/{job_type}/Send"
     target_file = f"{config.prefix}_{name}_{date_time}.csv"
+    print(f'{source_dir}/{source_file}')
     if path.exists(f'{source_dir}/{source_file}'):
         # get the path to the file in the current directory
         src = path.realpath(f'{target_dir}/{target_file}');
         # rename the original file
         os.rename(f'{source_dir}/{source_file}', f'{target_dir}/{target_file}')
         return path.realpath(f'{target_dir}/{target_file}');
+
 
 
 if __name__ == '__main__':
@@ -45,6 +51,7 @@ if __name__ == '__main__':
     date_time = now.strftime(config.date_time_format)
     try:
         opts, args = getopt.getopt(sys.argv[1:], "ht:c:", ["type=", "company="])
+
     except getopt.GetoptError:
         print('main.py -t <type> -c <company>')
         sys.exit(2)
@@ -59,26 +66,32 @@ if __name__ == '__main__':
     zipObj = ZipFile(f"{config.local_file_dir}/{company_name}/{job_type}/Processed/{company_name}.{date_time}.zip", 'w')
     work_files = []
     for company in config.companies:
+            if company['company'] == company_name:
+                for task in company['tasks']:
+                    if task['type'] == job_type:
+                        run_job(task['job_number'])
+                        with pysftp.Connection(company['host'], username=task['username'],
+                               private_key=task['private_key']) as sftp:
+                            for integration in task['integrations']:
+                                filename = file_prep_for_send(task['type'], company['company'], integration['name'],
+                                                            date_time)
+                                work_file=Workfile(filename, f"{task['base_directory']}/{integration['folder']}")
+                                work_files.append(work_file)
+                            for work_file in work_files:
+                                file=open(work_file.source)
+                                reader=csv.reader(file)
+                                lines=len(list(reader))
+                                if lines>1:
+                                     print(f"Put {work_file.source} in folder {work_file.target} ")
+                                     sftp.chdir('..')
+                                     sftp.chdir(f'{work_file.target}')
+                                     print(sftp.pwd)
+                                     sftp.put(work_file.source)
 
-        if company['company'] == company_name:
-            for task in company['tasks']:
-                if task['type'] == job_type:
-                    run_job(task['job_number'])
-                    for integration in task['integrations']:
-                        filename = file_prep_for_send(task['type'], company['company'], integration['name'],
-                                                      date_time)
-                        work_files.append(filename)
-                        basedir = f"{task['base_directory']}/{integration['folder']}"
-
-                        print(
-                            f"Put {filename} in folder {basedir} ")
-                        with pysftp.Connection(company['host'], username=company['username'],
-                                               private_key=company['private_key']) as sftp:
-                            with sftp.cd(basedir):
-                                sftp.put(filename)
     for f in work_files:
-        print(f"archiving {f}")
-        zipObj.write(f)
-        print(f"removing {f}")
-        os.remove(f)
+        print(f"archiving {f.source}")
+        zipObj.write(f.source)
+        print(f"removing {f.source}")
+        os.remove(f.source)
     zipObj.close()
+
